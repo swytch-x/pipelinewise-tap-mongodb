@@ -310,7 +310,7 @@ def main_impl():
     if args.discover:
         do_discover(client, config)
     elif args.catalog:
-        state = args.state or {}
+        state = args.state.get('completed', {}).get('singer_state', {}) or args.state or {}
         do_sync(client, args.catalog.to_dict(), config, state)
 
 

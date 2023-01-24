@@ -70,9 +70,7 @@ def class_to_string(key_value: Any, key_type: str) -> str:
     """
     if key_type == 'datetime':
         if key_value.tzinfo is None:
-            timezone = tzlocal.get_localzone()
-            local_datetime = timezone.localize(key_value)
-            utc_datetime = local_datetime.astimezone(pytz.UTC)
+            utc_datetime = pytz.utc.localize(key_value)
         else:
             utc_datetime = key_value.astimezone(pytz.UTC)
 

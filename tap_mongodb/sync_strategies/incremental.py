@@ -88,10 +88,16 @@ def sync_collection(collection: Collection,
     # create query
     find_filter = {}
 
-    if stream_state.get('replication_key_value'):
+    replication_key_value = stream_state.get('replication_key_value')
+    if replication_key_value:
+        replication_key_value_2 = stream_state.get('replication_key_value_2',
+                                                   common.class_to_string(utils.now(),
+                                                                          stream_state.get('replication_key_type')))
         find_filter[replication_key_name] = {}
-        find_filter[replication_key_name]['$gte'] = common.string_to_class(stream_state.get('replication_key_value'),
+        find_filter[replication_key_name]['$gt'] = common.string_to_class(replication_key_value,
                                                                            stream_state.get('replication_key_type'))
+        find_filter[replication_key_name]['$lte'] = common.string_to_class(replication_key_value_2,
+                                                                          stream_state.get('replication_key_type'))
 
     # log query
     LOGGER.info('Querying %s with: %s', stream['tap_stream_id'], dict(find=find_filter))
