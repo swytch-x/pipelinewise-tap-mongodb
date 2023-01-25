@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import copy
 import json
+import os
 import sys
 from typing import List, Dict, Optional
 from urllib import parse
@@ -14,7 +15,7 @@ from tap_mongodb.sync_strategies import common
 from tap_mongodb.sync_strategies import full_table
 from tap_mongodb.sync_strategies import incremental
 from tap_mongodb.config_utils import validate_config
-from tap_mongodb.db_utils import get_databases, produce_collection_schema
+from tap_mongodb.db_utils import get_databases, produce_collection_schema, produce_collection_template
 from tap_mongodb.errors import InvalidReplicationMethodException, NoReadPrivilegeException
 from tap_mongodb.stream_utils import is_log_based_stream, is_stream_selected, write_schema_message, \
     streams_list_to_dict, filter_streams_by_replication_method, get_streams_to_sync
@@ -66,6 +67,14 @@ def do_discover(client: MongoClient, config: Dict):
 
         LOGGER.info("Getting collection info for db '%s', collection '%s'", database.name, collection_name)
         streams.append(produce_collection_schema(collection))
+
+        # write this collection as a single stream file
+        single_stream = {'streams': [produce_collection_template(collection)]}
+        template_path = config['template_path'] or 'templates'
+        file_name = f'{template_path}/{collection_name}.json'
+        os.makedirs(os.path.dirname(file_name), exist_ok=True)
+        with open(file_name, 'w') as fh:
+            fh.write(json.dumps(single_stream, indent=2))
 
     json.dump({'streams': streams}, sys.stdout, indent=2)
 

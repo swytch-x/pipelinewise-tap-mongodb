@@ -1,9 +1,12 @@
 """
 List of helper functions for DB related procceses only
 """
-
+import datetime
+import uuid
+import bson
 import singer
-
+import pymongo
+from bson import objectid, timestamp, datetime as bson_datetime
 from typing import Dict, List
 from pymongo import MongoClient
 from pymongo.collection import Collection
@@ -36,6 +39,26 @@ ROLES_WITH_ALL_DB_FIND_PRIVILEGES = {
     'readWriteAnyDatabase',
     'root'
 }
+MONGO_DATA_TYPES = {
+    str: ['string', 'string'],
+    bool: ['boolean', 'boolean'],
+    int: ['integer', 'integer'],
+    float: ['number', 'number'],
+    list: ['array', 'array'],
+    dict: ['object', 'object'],
+    uuid.UUID: ['string', 'string'],
+    objectid.ObjectId: ['string', 'string'],
+    bson_datetime.datetime: ['string', 'date'],
+    timestamp.Timestamp: ['string', 'time'],
+    bson.int64.Int64: ['number', 'number'],
+    bytes: ['string', 'string'],
+    datetime.datetime: ['string', 'date'],
+    bson.decimal128.Decimal128: ['number', 'number'],
+    bson.regex.Regex: ['string', 'string'],
+    bson.code.Code: ['string', 'string'],
+    bson.dbref.DBRef: ['string', 'string'],
+}
+
 
 def get_roles_with_find_privs(database: Database, user: Dict) -> List[Dict]:
     """
@@ -207,5 +230,41 @@ def produce_collection_schema(collection: Collection) -> Dict:
                     ]
                 },
             },
+        }
+    }
+
+
+def produce_collection_template(collection: Collection) -> Dict:
+    """
+    Generate a jinja-templated schema/catalog from the collection details for discovery mode
+    Args:
+        collection: stream Collection
+
+    Returns: collection catalog jinja template
+
+    """
+    collection_name = collection.name
+    collection_db_name = collection.database.name
+
+    mdata = {}
+    mdata = metadata.write(mdata, (), 'table-key-properties', ['_id'])
+    mdata = metadata.write(mdata, (), 'database-name', collection_db_name)
+    mdata = metadata.write(mdata, (), 'selected', '{{ selected }}')
+    mdata = metadata.write(mdata, (), 'replication-method', '{{ mode }}')
+    mdata = metadata.write(mdata, (), 'replication-key', '{{ rep_key }}')
+    mdata = metadata.write(mdata, (), 'additional-filter', '{{ filter }}')
+
+    row = collection.find_one(sort=[("_id", pymongo.DESCENDING)]) or {}
+
+    return {
+        'table_name': '{{ name }}',
+        'stream': '{{ name }}',
+        'metadata': metadata.to_list(mdata),
+        'tap_stream_id': f"{collection_db_name}-{{{{ name }}}}",
+        'schema': {
+            'type': 'object',
+            'properties': {k: {'type': MONGO_DATA_TYPES[type(v)][0], 'format': MONGO_DATA_TYPES[type(v)][1]}
+                           for k, v in row.items()
+                           if v and k != '__v'}
         }
     }
