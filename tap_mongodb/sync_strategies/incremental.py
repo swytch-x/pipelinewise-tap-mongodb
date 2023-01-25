@@ -28,11 +28,17 @@ def update_bookmark(row: Dict, state: Dict, tap_stream_id: str, replication_key_
         replication_key_type = replication_key_value.__class__.__name__
 
         replication_key_value_bookmark = common.class_to_string(replication_key_value, replication_key_type)
+        replication_key_value_bookmark_2 = common.class_to_string(utils.now(), replication_key_type)
 
         state = singer.write_bookmark(state,
                                       tap_stream_id,
                                       'replication_key_value',
                                       replication_key_value_bookmark)
+
+        state = singer.write_bookmark(state,
+                                      tap_stream_id,
+                                      'replication_key_value_2',
+                                      replication_key_value_bookmark_2)
 
         singer.write_bookmark(state,
                               tap_stream_id,
@@ -80,13 +86,15 @@ def sync_collection(collection: Collection,
     # get replication key, and bookmarked value/type
     stream_state = state.get('bookmarks', {}).get(stream['tap_stream_id'], {})
 
-    replication_key_name = metadata.to_map(stream['metadata']).get(()).get('replication-key')
+    md_map = metadata.to_map(stream['metadata'])
+    replication_key_name = metadata.get(md_map, (), 'replication-key')
+    additional_filter = metadata.get(md_map, (), 'additional-filter')
 
     # write state message
     singer.write_message(singer.StateMessage(value=copy.deepcopy(state)))
 
     # create query
-    find_filter = {}
+    find_filter = eval(additional_filter) if additional_filter else {}
 
     replication_key_value = stream_state.get('replication_key_value')
     if replication_key_value:

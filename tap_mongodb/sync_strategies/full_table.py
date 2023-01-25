@@ -6,7 +6,7 @@ import singer
 
 from typing import Optional, Dict
 from pymongo.collection import Collection
-from singer import utils
+from singer import utils, metadata
 
 from tap_mongodb.sync_strategies import common
 
@@ -89,15 +89,19 @@ def sync_collection(collection: Collection, stream: Dict, state: Dict) -> None:
                                       'max_id_type',
                                       max_id_value.__class__.__name__)
 
-    find_filter = {'$lte': max_id_value}
+    md_map = metadata.to_map(stream['metadata'])
+    additional_filter = metadata.get(md_map, (), 'additional-filter')
+
+    find_filter = eval(additional_filter) if additional_filter else {}
+    find_filter['_id'] = {'$lte': max_id_value}
     if last_id_fetched:
-        find_filter['$gte'] = common.string_to_class(last_id_fetched, singer.get_bookmark(state,
+        find_filter['_id'].update({'$gte': common.string_to_class(last_id_fetched, singer.get_bookmark(state,
                                                                                           stream['tap_stream_id'],
-                                                                                          'last_id_fetched_type'))
+                                                                                          'last_id_fetched_type'))})
 
     LOGGER.info('Querying %s with: %s', stream['tap_stream_id'], dict(find=find_filter))
 
-    with collection.find({'_id': find_filter},
+    with collection.find(find_filter,
                          sort=[("_id", pymongo.ASCENDING)]) as cursor:
         rows_saved = 0
         start_time = time.time()

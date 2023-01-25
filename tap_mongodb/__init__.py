@@ -71,7 +71,7 @@ def do_discover(client: MongoClient, config: Dict):
         # write this collection as a single stream file
         single_stream = {'streams': [produce_collection_template(collection)]}
         template_path = config['template_path'] or 'templates'
-        file_name = f'{template_path}/{collection_name}.json'
+        file_name = f'{template_path}/{collection_name}.json.j2'
         os.makedirs(os.path.dirname(file_name), exist_ok=True)
         with open(file_name, 'w') as fh:
             fh.write(json.dumps(single_stream, indent=2))
