@@ -48,11 +48,11 @@ MONGO_DATA_TYPES = {
     dict: ['object', 'object'],
     uuid.UUID: ['string', 'string'],
     objectid.ObjectId: ['string', 'string'],
-    bson_datetime.datetime: ['string', 'date'],
+    bson_datetime.datetime: ['string', 'date-time'],
     timestamp.Timestamp: ['string', 'time'],
     bson.int64.Int64: ['number', 'number'],
     bytes: ['string', 'string'],
-    datetime.datetime: ['string', 'date'],
+    datetime.datetime: ['string', 'date-time'],
     bson.decimal128.Decimal128: ['number', 'number'],
     bson.regex.Regex: ['string', 'string'],
     bson.code.Code: ['string', 'string'],
@@ -249,7 +249,7 @@ def produce_collection_template(collection: Collection) -> Dict:
     mdata = {}
     mdata = metadata.write(mdata, (), 'table-key-properties', ['_id'])
     mdata = metadata.write(mdata, (), 'database-name', collection_db_name)
-    mdata = metadata.write(mdata, (), 'selected', '{{ selected }}')
+    mdata = metadata.write(mdata, (), 'selected', True)
     mdata = metadata.write(mdata, (), 'replication-method', '{{ mode }}')
     mdata = metadata.write(mdata, (), 'replication-key', '{{ rep_key }}')
     mdata = metadata.write(mdata, (), 'additional-filter', '{{ filter }}')
@@ -257,10 +257,10 @@ def produce_collection_template(collection: Collection) -> Dict:
     row = collection.find_one(sort=[("_id", pymongo.DESCENDING)]) or {}
 
     return {
-        'table_name': '{{ name }}',
-        'stream': '{{ name }}',
+        'table_name': collection_name,
+        'stream': collection_name,
         'metadata': metadata.to_list(mdata),
-        'tap_stream_id': f"{collection_db_name}-{{{{ name }}}}",
+        'tap_stream_id': f"{collection_db_name}-{collection_name}",
         'schema': {
             'type': 'object',
             'properties': {k: {'type': MONGO_DATA_TYPES[type(v)][0], 'format': MONGO_DATA_TYPES[type(v)][1]}

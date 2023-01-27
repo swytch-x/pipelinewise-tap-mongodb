@@ -28,17 +28,11 @@ def update_bookmark(row: Dict, state: Dict, tap_stream_id: str, replication_key_
         replication_key_type = replication_key_value.__class__.__name__
 
         replication_key_value_bookmark = common.class_to_string(replication_key_value, replication_key_type)
-        replication_key_value_bookmark_2 = common.class_to_string(utils.now(), replication_key_type)
 
         state = singer.write_bookmark(state,
                                       tap_stream_id,
                                       'replication_key_value',
                                       replication_key_value_bookmark)
-
-        state = singer.write_bookmark(state,
-                                      tap_stream_id,
-                                      'replication_key_value_2',
-                                      replication_key_value_bookmark_2)
 
         singer.write_bookmark(state,
                               tap_stream_id,
