@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import copy
+import datetime
 import time
 import pymongo
+import pytz
 import singer
 
 from typing import Dict, Optional
@@ -38,6 +40,16 @@ def update_bookmark(row: Dict, state: Dict, tap_stream_id: str, replication_key_
                               tap_stream_id,
                               'replication_key_type',
                               replication_key_type)
+
+
+def finalize_bookmark(state: Dict, tap_stream_id: str, replication_key_type: str):
+    if replication_key_type == 'datetime':
+        replication_key_value_bookmark_2 = common.class_to_string(datetime.datetime(2050, 1, 1, tzinfo=pytz.UTC),
+                                                                  'datetime')
+        singer.write_bookmark(state,
+                              tap_stream_id,
+                              'replication_key_value_2',
+                              replication_key_value_bookmark_2)
 
 
 def sync_collection(collection: Collection,
@@ -97,9 +109,9 @@ def sync_collection(collection: Collection,
                                                                           stream_state.get('replication_key_type')))
         find_filter[replication_key_name] = {}
         find_filter[replication_key_name]['$gt'] = common.string_to_class(replication_key_value,
-                                                                           stream_state.get('replication_key_type'))
-        find_filter[replication_key_name]['$lte'] = common.string_to_class(replication_key_value_2,
                                                                           stream_state.get('replication_key_type'))
+        find_filter[replication_key_name]['$lte'] = common.string_to_class(replication_key_value_2,
+                                                                           stream_state.get('replication_key_type'))
 
     # log query
     LOGGER.info('Querying %s with: %s', stream['tap_stream_id'], dict(find=find_filter))
@@ -125,6 +137,8 @@ def sync_collection(collection: Collection,
 
         common.COUNTS[stream['tap_stream_id']] += rows_saved
         common.TIMES[stream['tap_stream_id']] += time.time() - start_time
+
+        finalize_bookmark(state, stream['tap_stream_id'], stream_state.get('replication_key_type'))
 
     singer.write_message(activate_version_message)
 
