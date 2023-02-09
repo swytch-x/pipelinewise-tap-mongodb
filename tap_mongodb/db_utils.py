@@ -250,9 +250,9 @@ def produce_collection_template(collection: Collection) -> Dict:
     mdata = metadata.write(mdata, (), 'table-key-properties', ['_id'])
     mdata = metadata.write(mdata, (), 'database-name', collection_db_name)
     mdata = metadata.write(mdata, (), 'selected', True)
-    mdata = metadata.write(mdata, (), 'replication-method', '{{ mode }}')
-    mdata = metadata.write(mdata, (), 'replication-key', '{{ rep_key }}')
-    mdata = metadata.write(mdata, (), 'additional-filter', '{{ filter }}')
+    mdata = metadata.write(mdata, (), 'replication-method', '${ mode }')
+    mdata = metadata.write(mdata, (), 'replication-key', '${ rep_key }')
+    mdata = metadata.write(mdata, (), 'additional-filter', '${ filter }')
 
     row = collection.find_one(sort=[("_id", pymongo.DESCENDING)]) or {}
 
