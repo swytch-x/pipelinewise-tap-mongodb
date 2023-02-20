@@ -46,6 +46,7 @@ MONGO_DATA_TYPES = {
     float: ['number', 'number'],
     list: ['array', 'array'],
     dict: ['object', 'object'],
+    type(None): ['string', 'string'],
     uuid.UUID: ['string', 'string'],
     objectid.ObjectId: ['string', 'string'],
     bson_datetime.datetime: ['string', 'date-time'],
@@ -265,6 +266,6 @@ def produce_collection_template(collection: Collection) -> Dict:
             'type': 'object',
             'properties': {k: {'type': MONGO_DATA_TYPES[type(v)][0], 'format': MONGO_DATA_TYPES[type(v)][1]}
                            for k, v in row.items()
-                           if v and k != '__v'}
+                           if k != '__v'}
         }
     }
