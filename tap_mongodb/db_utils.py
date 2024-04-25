@@ -265,7 +265,6 @@ def produce_collection_template(collection: Collection) -> Dict:
         'schema': {
             'type': 'object',
             'properties': {k: {'type': MONGO_DATA_TYPES[type(v)][0], 'format': MONGO_DATA_TYPES[type(v)][1]}
-                           for k, v in row.items()
-                           if k != '__v'}
+                           for k, v in row.items()}
         }
     }
